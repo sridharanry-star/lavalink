@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  lavalink:
+    build: .
+    container_name: ryuga-lavalink
+    restart: unless-stopped
+    ports:
+      - "4998:4998"
+    volumes:
+      - ./application.yml:/opt/lavalink/application.yml
+      - ./logs:/opt/lavalink/logs
+    environment:
+      - JVM_OPTS=-Xmx2G -XX:+UseG1GC -XX:+ParallelRefProcEnabled
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4998/version || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
