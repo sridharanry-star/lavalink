@@ -1,0 +1,191 @@
+# ==============================================================================
+# Lavalink v4 Configuration Template (Standalone / Zero Remote Dependencies)
+# ==============================================================================
+# - Multi-source support: YouTube, Spotify, JioSaavn, SoundCloud, etc.
+# - Spotify uses internal GraphQL (NO Spotify Developer App or Premium required!)
+# ==============================================================================
+
+server:
+    address: 0.0.0.0
+    port: 4998 # Set your desired server port
+    http2:
+        enabled: false
+    undertow:
+        buffer-size: 8192
+        direct-buffers: true
+        io-threads: 4
+        no-request-timeout: 60000
+        worker-threads: 32
+
+lavalink:
+    plugins: [] # Loads pre-bundled local JARs from ./plugins
+    pluginsDir: "./plugins"
+    server:
+        password: "YOUR_LAVALINK_PASSWORD" # Change this password
+        bufferDurationMs: 400
+        frameBufferDurationMs: 5000
+        playerUpdateInterval: 5
+        opusEncodingQuality: 10
+        resamplingQuality: HIGH
+        trackStuckThresholdMs: 10000
+        useSeekGhosting: true
+        gcWarnings: false
+        youtubeSearchEnabled: false # Disabled in favor of YouTube Music (ytmsearch)
+        soundcloudSearchEnabled: false
+        sources:
+            youtube: false # Handled by dev.lavalink.youtube plugin
+            soundcloud: false
+            bandcamp: true
+            twitch: true
+            vimeo: true
+            nico: true
+            http: true
+            local: false
+        filters:
+            volume: true
+            equalizer: true
+            karaoke: true
+            timescale: true
+            tremolo: true
+            vibrato: true
+            distortion: true
+            rotation: true
+            channelMix: true
+            lowPass: true
+
+plugins:
+    # --------------------------------------------------------------------------
+    # YouTube Plugin (dev.lavalink.youtube)
+    # --------------------------------------------------------------------------
+    youtube:
+        enabled: true
+        allowSearch: true
+        allowDirectVideoIds: true
+        allowDirectPlaylistIds: true
+        clients:
+            - MUSIC
+            - ANDROID_MUSIC
+            - TV
+            - TVHTML5_SIMPLY
+            - ANDROID_VR
+            - WEBEMBEDDED
+            - IOS
+            - MWEB
+            - WEB
+        clientOptions:
+            MUSIC:
+                searching: true
+            ANDROID_MUSIC:
+                searching: true
+            TV:
+                searching: false
+                playback: true
+            TVHTML5_SIMPLY:
+                searching: false
+                playback: true
+            WEB:
+                searching: false
+                playback: false
+            WEBEMBEDDED:
+                searching: false
+            IOS:
+                searching: false
+            MWEB:
+                searching: false
+            ANDROID_VR:
+                searching: false
+        oauth:
+            enabled: true
+            skipInitialization: true
+            refreshToken: "YOUR_YOUTUBE_OAUTH_REFRESH_TOKEN"
+        remoteCipher:
+            url: "https://cipher.kikkia.dev"
+            userAgent: "yt-source"
+
+    # --------------------------------------------------------------------------
+    # LavaSrc Plugin (Spotify)
+    # --------------------------------------------------------------------------
+    lavasrc:
+        sources:
+            spotify: false # Disabled in favor of SolaceAudio
+            applemusic: false
+            deezer: false
+            yandexmusic: false
+            flowerytts: false
+            youtube: false
+        providers:
+            - "ytmsearch:\"%ISRC%\""
+            - "ytmsearch:%QUERY%"
+        spotify:
+            clientId: "YOUR_SPOTIFY_CLIENT_ID"
+            clientSecret: "YOUR_SPOTIFY_CLIENT_SECRET"
+            spDc: "YOUR_SPOTIFY_SP_DC_COOKIE"
+            countryCode: "IN"
+            playlistLoadLimit: 50
+            albumLoadLimit: 50
+            resolveArtistsInSearch: true
+            localFiles: false
+
+    # --------------------------------------------------------------------------
+    # SolaceAudio Plugin (Spotify & Indian Streaming - NO PREMIUM NEEDED)
+    # --------------------------------------------------------------------------
+    solaceaudio:
+        sources:
+            spotify: true # Enabled! Bypasses Spotify Developer / Premium restrictions
+            jiosaavn: true
+            gaana: false
+            amazonmusic: false
+            deezer: false
+            pandora: false
+            youtube: false
+            flowerytts: false
+        providers:
+            - "ytmsearch:\"{isrc}\""
+            - "ytmsearch:{query}"
+            - "jssearch:{query}"
+        spotify:
+            countryCode: "IN"
+            playlistLoadLimit: 50
+            albumLoadLimit: 50
+            resolveArtistsInSearch: true
+            localFiles: false
+            spDc: "YOUR_SPOTIFY_SP_DC_COOKIE"
+
+    # --------------------------------------------------------------------------
+    # LavaSearch Plugin (com.github.topi314.lavasearch)
+    # --------------------------------------------------------------------------
+    lavasearch:
+        sources:
+            youtube: false
+            spotify: false
+            deezer: false
+            soundcloud: false
+
+logging:
+    file:
+        path: ./logs/
+    level:
+        com.solaceaudio: INFO
+        lavalink: INFO
+        moe.kyokobot.koe: INFO
+        root: INFO
+    logback:
+        rollingPolicy:
+            maxFileSize: 1GB
+            maxHistory: 30
+    request:
+        enabled: true
+        includeClientInfo: true
+        includeHeaders: false
+        includePayload: true
+        includeQueryString: true
+        maxPayloadLength: 10000
+
+metrics:
+    prometheus:
+        enabled: false
+        endpoint: /metrics
+
+sentry:
+    dsn: ""
+    environment: ""

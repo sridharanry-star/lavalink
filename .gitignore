@@ -1,0 +1,25 @@
+# Logs
+logs/
+*.log
+
+# Backup / Archive files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# System / OS
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# Local sensitive configuration (keeps OAuth and Spotify cookies safe)
+application.yml
+
+# Temporary files
+*.tmp
+*.bak
