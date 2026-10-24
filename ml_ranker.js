@@ -327,3 +327,121 @@ module.exports = {
   containsTamilScript,
   phoneticNormalize
 };
+
+// ==============================================================================
+// Standalone Zero-Dependency ML Reverse Proxy for Lavalink (when run directly)
+// ==============================================================================
+if (require.main === module) {
+  const http = require('http');
+  const net = require('net');
+  const url = require('url');
+
+  const PROXY_PORT = parseInt(process.env.PORT || process.env.LAVALINK_PROXY_PORT || '4998', 10);
+  const BACKEND_PORT = parseInt(process.env.LAVALINK_PORT || '4999', 10);
+  const BACKEND_HOST = process.env.LAVALINK_HOST || '127.0.0.1';
+
+  const server = http.createServer((req, res) => {
+    const reqUrl = url.parse(req.url, true);
+
+    // Intercept /v4/loadtracks to apply ML Ranking
+    if (reqUrl.pathname === '/v4/loadtracks' && req.method === 'GET') {
+      const backendReq = http.request({
+        hostname: BACKEND_HOST,
+        port: BACKEND_PORT,
+        path: req.url,
+        method: 'GET',
+        headers: req.headers
+      }, (backendRes) => {
+        const chunks = [];
+        backendRes.on('data', chunk => chunks.push(chunk));
+        backendRes.on('end', () => {
+          const raw = Buffer.concat(chunks).toString('utf-8');
+          try {
+            const data = JSON.parse(raw);
+            const identifier = reqUrl.query.identifier || '';
+            let tracks = null;
+
+            if (data.loadType === 'search' && Array.isArray(data.data)) {
+              tracks = data.data;
+            } else if (data.loadType === 'playlist' && data.data && Array.isArray(data.data.tracks)) {
+              tracks = data.data.tracks;
+            } else if (Array.isArray(data.tracks)) {
+              tracks = data.tracks;
+            }
+
+            if (tracks && tracks.length > 1) {
+              const cleanQuery = identifier.replace(/^[a-z]+search:/i, '');
+              const ranked = rankTracks(cleanQuery, tracks);
+              if (data.loadType === 'search') data.data = ranked;
+              else if (data.loadType === 'playlist') data.data.tracks = ranked;
+              else data.tracks = ranked;
+            }
+
+            const modified = Buffer.from(JSON.stringify(data), 'utf-8');
+            const headers = { ...backendRes.headers, 'content-length': modified.length };
+            res.writeHead(backendRes.statusCode, headers);
+            res.end(modified);
+          } catch (e) {
+            res.writeHead(backendRes.statusCode, backendRes.headers);
+            res.end(raw);
+          }
+        });
+      });
+
+      backendReq.on('error', (err) => {
+        res.writeHead(502, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ loadType: 'error', data: { message: `Lavalink ML Gateway unreachable: ${err.message}` } }));
+      });
+      req.pipe(backendReq);
+      return;
+    }
+
+    // Default transparent HTTP proxy
+    const proxyReq = http.request({
+      hostname: BACKEND_HOST,
+      port: BACKEND_PORT,
+      path: req.url,
+      method: req.method,
+      headers: req.headers
+    }, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+
+    proxyReq.on('error', (err) => {
+      res.writeHead(502, { 'content-type': 'application/json' });
+      res.end(JSON.stringify({ error: err.message }));
+    });
+    req.pipe(proxyReq);
+  });
+
+  // WebSocket transparent tunneling (for /v4/websocket)
+  server.on('upgrade', (req, clientSocket, head) => {
+    const backendSocket = net.connect(BACKEND_PORT, BACKEND_HOST, () => {
+      backendSocket.write(
+        `${req.method} ${req.url} HTTP/${req.httpVersion}\r\n` +
+        Object.entries(req.headers).map(([k, v]) => `${k}: ${v}`).join('\r\n') +
+        '\r\n\r\n'
+      );
+      if (head && head.length) backendSocket.write(head);
+      backendSocket.pipe(clientSocket);
+      clientSocket.pipe(backendSocket);
+    });
+
+    backendSocket.on('error', (err) => {
+      console.error('[ML Proxy WS Error]', err.message);
+      clientSocket.destroy();
+    });
+    clientSocket.on('error', () => backendSocket.destroy());
+  });
+
+  server.listen(PROXY_PORT, '0.0.0.0', () => {
+    console.log(`===================================================`);
+    console.log(`    Ryuga Lavalink ML Gateway (Node.js)`);
+    console.log(`===================================================`);
+    console.log(`[INFO] Listening on port ${PROXY_PORT} (Public)`);
+    console.log(`[INFO] Forwarding to Lavalink backend at ${BACKEND_HOST}:${BACKEND_PORT}`);
+    console.log(`[INFO] ML Search Ranking & SongValidator: ACTIVE`);
+  });
+}
+
