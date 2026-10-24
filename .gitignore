@@ -23,3 +23,13 @@ application.yml
 # Temporary files
 *.tmp
 *.bak
+
+# Python artifacts & cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local ML Telemetry & Datasets
+data/ml/
+db/

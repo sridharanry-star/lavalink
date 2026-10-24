@@ -1,0 +1,9 @@
+# Lavalink ML Gateway Dependencies
+fastapi>=0.110.0
+uvicorn>=0.28.0
+httpx>=0.23.0
+websockets>=12.0
+aiosqlite>=0.20.0
+numpy>=1.24.0
+lightgbm>=4.0.0
+pyyaml>=6.0

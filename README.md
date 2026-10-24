@@ -15,6 +15,7 @@
 
 [![Lavalink Version](https://img.shields.io/badge/Lavalink-v4.2.2-7C3AED?style=for-the-badge&logo=spring&logoColor=white)](https://github.com/lavalink-devs/Lavalink)
 [![Java Version](https://img.shields.io/badge/Java-17%20%7C%2021%20LTS-F59E0B?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![ML Search](https://img.shields.io/badge/ML%20Search-LightGBM%20%2B%20NLP-FF4B4B?style=for-the-badge&logo=scikitlearn&logoColor=white)](#-machine-learning-search-intelligence)
 [![Plugins](https://img.shields.io/badge/Plugins-Bundled%20Local-10B981?style=for-the-badge&logo=coffeescript&logoColor=white)](#-bundled-plugins)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white)](#-docker-deployment)
 [![License](https://img.shields.io/badge/License-MIT-3B82F6?style=for-the-badge)](LICENSE)
@@ -28,14 +29,15 @@
 <br/>
 
 <p align="center">
-  A <b>battle-tested, turnkey Lavalink v4.2.2 audio server</b> engineered for extreme uptime, pristine audio fidelity, and zero external build failures.
+  A <b>battle-tested, turnkey Lavalink v4.2.2 audio server with Machine Learning Search Intelligence</b> engineered for extreme uptime, pristine audio fidelity, and zero external build failures.
   <br/>
-  Featuring <b>100% Offline Local Plugin Bundling</b>, <b>YouTube OAuth & Remote Cipher Bypass</b>, and <b>SolaceAudio GraphQL Integration</b> for unlimited Spotify and Indian music streaming.
+  Featuring <b>LightGBM Search Reranking & Strict Audio Validation</b>, <b>100% Offline Local Plugin Bundling</b>, <b>YouTube OAuth & Remote Cipher Bypass</b>, and <b>SolaceAudio GraphQL Integration</b> for unlimited Spotify and Indian music streaming.
 </p>
 
 ---
 
 [✨ Key Features](#-key-features) •
+[🧠 ML Search](#-machine-learning-search-intelligence) •
 [📊 Architecture](#-architecture) •
 [⚡ Comparison](#-standard-vs-ryuga-lavalink) •
 [🧩 Plugins](#-bundled-plugins) •
@@ -54,6 +56,13 @@
 
 ## ✨ Key Features
 
+- 🧠 **Machine Learning Search & Phonetic Reranker**:
+  - Integrated Tamil & multilingual NLP ranker with **24 dense feature extractors**.
+  - **SongValidator Engine**: Strictly rejects non-music junk (trailers, reaction videos, 10-hour loops, bass boosted fan edits, and amateur covers).
+  - **Topic & Studio Prioritization**: Automatically awards high confidence (+55 pts) to pristine studio recordings and verified Topic/VEVO releases.
+  - **Phonetic & Romanized Script Matching**: Tolerant orthographic search understanding Tanglish and regional spellings.
+  - Multi-source search aggregation via `mlsearch:<query>` combining YouTube Music and YouTube.
+  - **Continuous Feedback Loop**: Non-blocking SQLite WAL telemetry captures play completions and skips for offline LightGBM booster retraining.
 - ⚡ **Zero Remote Dependencies (Offline Boot)**:
   Plugins are packaged as local JARs in [`./plugins/`](./plugins/). Boots instantaneously without querying JitPack, GitHub Releases, or Maven Central — immune to third-party dependency outages.
 - 📺 **Next-Gen YouTube & YouTube Music Engine**:
@@ -82,8 +91,15 @@ flowchart TD
         Users["🎧 Voice Channel Listeners"]
     end
 
-    subgraph LavalinkServer["👑 Ryuga Lavalink v4 Engine"]
-        WS["⚡ Undertow WebSocket & REST API\n(Port: 4998)"]
+    subgraph MLGateway["🧠 Ryuga ML Search Gateway (Port: 4998)"]
+        Ranker["🎯 SearchRankingModel\n(24 Dense Features • LightGBM)"]
+        Validator["🛡️ SongValidator\n(Junk & Cover Rejection • Studio Boost)"]
+        Phonetic["🔤 Tamil & Multilingual Phonetics\n(Script Transliteration • Fuzzy Recall)"]
+        Telemetry["📊 InteractionLogger\n(Continuous Telemetry • SQLite WAL)"]
+    end
+
+    subgraph LavalinkServer["👑 Ryuga Lavalink v4 Engine (Port: 5998)"]
+        WS["⚡ Undertow WebSocket & REST Audio Node"]
         Buffer["🚄 Direct IO Buffer & G1GC Memory Pool"]
         DSP["🎛️ Real-time Audio DSP Filter Stack\n(15-Band EQ • Timescale • 8D Rotation)"]
         
@@ -102,8 +118,9 @@ flowchart TD
         DirectStreams["Bandcamp • Twitch • Vimeo • HTTP"]
     end
 
-    Bot -->|Track Request / Filters| WS
-    WS --> Buffer
+    Bot -->|Search Query / Controls| MLGateway
+    MLGateway -->|Query Interception / Reranking| LavalinkServer
+    LavalinkServer --> Buffer
     Buffer --> DSP
     DSP --> YT
     DSP --> Solace
@@ -117,6 +134,50 @@ flowchart TD
 
     DSP -.->|Direct Opus UDP Packets| Users
 ```
+
+<br/>
+
+---
+
+## 🧠 Machine Learning Search Intelligence
+
+Lavalink now features an advanced **Machine Learning Search Reranker & Audio Validation Engine** designed specifically for high-accuracy music querying (especially rich in Tamil, Tanglish, and multilingual catalog matching):
+
+### 1. 24 Dense Query Features
+For every candidate track returned from YouTube Music or YouTube, `SearchFeatureExtractor` extracts 24 dense numerical features:
+- **Lexical Precision & Recall**: `query_title_recall`, `query_artist_recall`, `query_identity_recall`, `title_precision`, `query_title_similarity`
+- **Identity Matching**: `title_exact_match`, `artist_exact_match`, `artist_match_score`
+- **Acoustic & Duration Correlation**: `duration_match_score`, `duration_available`
+- **Channel Credibility**: `channel_looks_official`, `title_has_audio_marker`, `source_is_youtube_music`, `source_is_youtube`
+- **Linguistic & Phonetic Script Match**: `query_has_tamil_script`, `candidate_has_tamil_script`, `query_has_tamil_context`, `tamil_phonetic_similarity`, `romanized_exact_match`
+
+### 2. Strict SongValidator Quality Gate
+Raw YouTube searches frequently return non-music junk, reactions, and unofficial edits. `SongValidator` actively filters:
+- ❌ **Rejections (-100 pts)**: Trailers, teasers, movie scenes, dialogue cuts, reactions, reviews, 1-hour loops, amateur covers, karaokes, slowed+reverb, and pitch-shifted fan edits.
+- ⭐ **Studio Boost (+55 pts)**: Official `- Topic` uploads, pristine studio versions, and verified record labels (Sony Music, Think Music, Saregama, T-Series, Lahari, Aditya, VEVO).
+
+### 3. Usage & Search Prefixes
+
+| Identifier Prefix | Behavior |
+| :--- | :--- |
+| `ytsearch:<query>` | Standard YouTube search with **automatic ML reranking and junk filtering** |
+| `ytmsearch:<query>` | YouTube Music search with **ML studio audio prioritization** |
+| `mlsearch:<query>` | **Multi-Source Aggregator**: Queries both YTM & YT, deduplicates, and ranks with ML |
+| `spsearch:<query>` | Spotify search through SolaceAudio GraphQL with ML rank alignment |
+
+### 4. Running with ML Gateway
+
+```bash
+# Windows
+start_with_ml.bat
+
+# Linux / Docker
+./start_with_ml.sh
+# or
+python3 lavalink_ml_gateway.py --port 4998 --backend-port 5998
+```
+
+Your Discord bots connect directly to **port 4998** with password `ryugalavalink` — exactly as before, with zero client changes required!
 
 <br/>
 
