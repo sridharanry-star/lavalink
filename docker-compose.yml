@@ -10,7 +10,6 @@ services:
     volumes:
       - ./application.yml:/opt/lavalink/application.yml
       - ./logs:/opt/lavalink/logs
-      - ./data/ml:/opt/lavalink/data/ml
     environment:
       - JVM_OPTS=-Xmx2G -XX:+UseG1GC -XX:+ParallelRefProcEnabled
     healthcheck:
