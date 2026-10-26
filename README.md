@@ -270,7 +270,7 @@ chmod +x start.sh
 java -Xmx2G -XX:+UseG1GC -XX:+ParallelRefProcEnabled -jar Lavalink.jar
 ```
 
-The node will bind to `0.0.0.0:4998` with password `ryugalavalink` (or your configured settings in `application.yml`).
+The node will bind to `0.0.0.0:4998` with password `your password` (or your configured settings in `application.yml`).
 
 <br/>
 
@@ -404,7 +404,7 @@ const Spotify = require("kazagurumo-spotify");
 const Nodes = [
   {
     name: "Ryuga-Node",
-    url: "localhost:4998",
+    url: "localhost:port",
     auth: "ryugalavalink",
     secure: false
   }
